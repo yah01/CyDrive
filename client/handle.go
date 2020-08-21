@@ -2,10 +2,13 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"github.com/mholt/archiver/v3"
+	"github.com/yah01/CyDrive/model"
 	"github.com/yah01/CyDrive/utils"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -42,7 +45,14 @@ func ListRemoteDir(path ...string) {
 		}
 		defer resp.Body.Close()
 
-		fmt.Println(GetRespInfo(resp))
+		data,err := ioutil.ReadAll(resp.Body)
+		res := model.Resp{}
+		json.Unmarshal(data,&res)
+		list := res.Data.([]interface{})
+
+		for _,file := range list {
+			fmt.Println(file)
+		}
 	}
 }
 

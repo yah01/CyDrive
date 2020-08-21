@@ -3,7 +3,7 @@
     "id": 1,
     "username": "test",
     "password": "testCyDrive",
-    "root_dir": "1",
-    "work_path": "1"
+    "root_dir": "C:\\cydrive",
+    "work_path": ""
   }
 ]

@@ -22,8 +22,8 @@ const (
 
 type CdpStatus = int
 const (
-	StatusOk CdpStatus = iota
-	StatusAuthError
+	StatusOk CdpStatus = 0
+	StatusAuthError = (1<<iota)/2
 	StatusIoError
 	StatusInternalError
 )

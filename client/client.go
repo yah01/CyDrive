@@ -39,6 +39,7 @@ func main() {
 
 	baseUrl = fmt.Sprintf("http://%s:6454", serverAddress)
 	Login(user.Username, user.Password)
+	ListRemoteDir()
 
 	var (
 		cmd    string

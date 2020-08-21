@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	. "github.com/yah01/CyDrive/consts"
 	"github.com/yah01/CyDrive/model"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -14,6 +15,7 @@ import (
 func LoginAuth(router *gin.Engine) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if strings.Trim(c.Request.URL.Path, "/") == "login" {
+			c.Next()
 			return
 		}
 
@@ -21,19 +23,34 @@ func LoginAuth(router *gin.Engine) gin.HandlerFunc {
 		user := userSession.Get("userStruct")
 		expire := userSession.Get("expire")
 		if user == nil || expire == nil {
-			c.String(StatusAuthError, "not login")
+			c.AbortWithStatusJSON(http.StatusOK, model.Resp{
+				Status:  StatusAuthError,
+				Message: "not login",
+				Data:    nil,
+			})
 			return
 		}
 
 		if !expire.(time.Time).After(time.Now()) {
-			c.String(StatusAuthError, "timeout, login again")
+			c.AbortWithStatusJSON(http.StatusOK, model.Resp{
+				Status:  StatusAuthError,
+				Message: "timeout, login again",
+				Data:    nil,
+			})
 			userSession.Clear()
 			return
 		}
 
 		// flush expire time
 		userSession.Set("expire", time.Now().Add(time.Hour*12))
-		userSession.Save()
+		if err := userSession.Save();err!=nil {
+			c.AbortWithStatusJSON(http.StatusOK, model.Resp{
+				Status:  StatusInternalError,
+				Message: err.Error(),
+				Data:    nil,
+			})
+			return
+		}
 
 		// store user struct into context
 		c.Set("user", user)
