@@ -16,7 +16,7 @@ func init() {
 	// Parse args
 	//cyflag.BoolVar(&isServer, "--server", false, "whether run as a cdv cdpServer")
 	cyflag.BoolVar(&isOnline, "--online", false, "whether is online")
-	cyflag.StringVar(&serverAddress, "-h", "localhost", "set the cdvServer address")
+	cyflag.StringVar(&serverAddress, "-h", "localhost", "set the CyDrive Server address")
 	cyflag.Parse()
 
 	// Read DB config

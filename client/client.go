@@ -5,7 +5,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	. "github.com/yah01/CyDrive/const"
+	. "github.com/yah01/CyDrive/consts"
 	"github.com/yah01/CyDrive/model"
 	"net/http"
 	"net/http/cookiejar"

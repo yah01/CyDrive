@@ -1,4 +1,4 @@
-package _const
+package consts
 
 const(
 	ListenPort = ":6454"
@@ -13,7 +13,6 @@ const (
 	SEND  Command = "SEND"
 	SENDA Command = "SENDA"
 	LIST  Command = "LIST"
-	DONE  Command = "DONE"
 	RCD   Command = "RCD"
 
 	QUIT Command = "QUIT"

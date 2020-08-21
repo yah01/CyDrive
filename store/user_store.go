@@ -6,7 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/yah01/CyDrive/config"
-	. "github.com/yah01/CyDrive/const"
+	. "github.com/yah01/CyDrive/consts"
 	"github.com/yah01/CyDrive/model"
 	"io/ioutil"
 	"path/filepath"

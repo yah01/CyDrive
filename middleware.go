@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	. "github.com/yah01/CyDrive/const"
+	. "github.com/yah01/CyDrive/consts"
 	"github.com/yah01/CyDrive/model"
 	"strings"
 	"time"

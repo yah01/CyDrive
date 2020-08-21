@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/yah01/CyDrive/config"
-	. "github.com/yah01/CyDrive/const"
+	. "github.com/yah01/CyDrive/consts"
 	"github.com/yah01/CyDrive/model"
 	"github.com/yah01/CyDrive/store"
 	"time"
