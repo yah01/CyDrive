@@ -30,6 +30,10 @@ func LoginHandle(c *gin.Context) {
 	}
 
 	user := userStore.GetUserByName(username)
+	if user==nil {
+		c.String(StatusAuthError,"no such user")
+		return
+	}
 	if utils.PasswordHash(user.Password) != password {
 		c.String(StatusAuthError,"user name or password not correct")
 		return
