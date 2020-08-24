@@ -176,6 +176,16 @@ func UploadHandle(c *gin.Context) {
 	}
 
 	filePath := filepath.Join(user.RootDir, fileInfo.FilePath)
+	fileDir := filepath.Dir(filePath)
+	if err := os.MkdirAll(fileDir, os.FileMode(fileInfo.FileMode)); err != nil {
+		c.JSON(http.StatusOK, model.Resp{
+			Status:  StatusInternalError,
+			Message: err.Error(),
+			Data:    nil,
+		})
+		return
+	}
+
 	saveFile, err := os.OpenFile(filePath,
 		os.O_RDWR|os.O_CREATE, os.FileMode(fileInfo.FileMode))
 	if err != nil {
