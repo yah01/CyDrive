@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 const (
@@ -26,10 +28,23 @@ func Sha256Hash(password []byte) []byte {
 func PasswordHash(password string) string {
 	bytes := Sha256Hash(Md5Hash([]byte(password)))
 	var res string
-	for _,v := range bytes {
+	for _, v := range bytes {
 		res += fmt.Sprint(v)
 	}
 	return res
+}
+
+func PackRange(begin, end int64) string {
+	return fmt.Sprintf("bytes=%v-%v", begin, end)
+}
+
+func UnpackRange(rangeStr string) (int64, int64) {
+	rangeStr = strings.TrimPrefix(rangeStr, "bytes=")
+	tuple := strings.Split(rangeStr, "-")
+	begin, _ := strconv.ParseInt(tuple[0], 10, 64)
+	end, _ := strconv.ParseInt(tuple[1], 10, 64)
+
+	return begin, end
 }
 
 func ForEachFile(path string, handle func(filename string)) {
