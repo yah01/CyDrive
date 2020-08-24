@@ -142,6 +142,15 @@ func DownloadHandle(c *gin.Context) {
 }
 
 func UploadHandle(c *gin.Context) {
+	if c.Request.ContentLength > FileSizeLimit {
+		c.JSON(http.StatusOK, model.Resp{
+			Status:  StatusFileTooLarge,
+			Message: "file is too large",
+			Data:    nil,
+		})
+		return
+	}
+
 	userI, _ := c.Get("user")
 	user := userI.(*model.User)
 
