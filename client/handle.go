@@ -21,6 +21,7 @@ func Login(username string, password string) {
 
 	originTimeout := client.Timeout
 	client.Timeout = time.Second * 120
+	fmt.Println(utils.PasswordHash(password))
 	resp, err := client.PostForm(Url.String(), url.Values{
 		"username": {username},
 		"password": {utils.PasswordHash(password)},

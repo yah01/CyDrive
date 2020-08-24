@@ -106,6 +106,35 @@ func ListHandle(c *gin.Context) {
 	})
 }
 
+func GetFileInfoHandle(c *gin.Context) {
+	userI, _ := c.Get("user")
+	user := userI.(*model.User)
+
+	filePath := c.Query("filepath")
+	filePath = strings.Trim(filePath, string(os.PathSeparator))
+	filePath = filepath.Join(user.RootDir, filePath)
+
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		c.JSON(http.StatusOK, model.Resp{
+			Status:  StatusIoError,
+			Message: err.Error(),
+			Data:    nil,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, model.Resp{
+		Status:  StatusOk,
+		Message: "get file info done",
+		Data: model.FileInfo{
+			FileMode:   uint32(fileInfo.Mode()),
+			ModifyTime: fileInfo.ModTime().Unix(),
+			FilePath:   filePath,
+		},
+	})
+}
+
 func DownloadHandle(c *gin.Context) {
 	userI, _ := c.Get("user")
 	user := userI.(*model.User)
@@ -139,6 +168,7 @@ func DownloadHandle(c *gin.Context) {
 			Data: data,
 		},
 	})
+	c.Writer.Write(data)
 }
 
 func UploadHandle(c *gin.Context) {
