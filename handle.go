@@ -117,8 +117,23 @@ func DownloadHandle(c *gin.Context) {
 	// absolute filepath
 	filePath = filepath.Join(user.RootDir, filePath)
 	fileinfo, _ := os.Stat(filePath)
+	if fileinfo.IsDir() {
+		c.JSON(http.StatusOK, model.Resp{
+			Status:  StatusIoError,
+			Message: "not a file",
+			Data:    nil,
+		})
+		return
+	}
 
-	data, err := ioutil.ReadFile(filePath)
+	// range
+	var begin, end int64 = 0, fileinfo.Size()
+	bytesRange := c.GetHeader("Range")
+	if len(bytesRange) > 0 {
+		begin, end = utils.UnpackRange(bytesRange)
+	}
+
+	file, err := os.Open(filePath)
 	if err != nil {
 		c.JSON(http.StatusOK, model.Resp{
 			Status:  StatusIoError,
@@ -127,19 +142,26 @@ func DownloadHandle(c *gin.Context) {
 		})
 		return
 	}
+	defer file.Close()
 
-	c.JSON(http.StatusOK, model.Resp{
-		Status:  StatusOk,
-		Message: "download done",
-		Data: model.File{
-			FileInfo: model.FileInfo{
-				FileMode:   uint32(fileinfo.Mode()),
-				ModifyTime: fileinfo.ModTime().Unix(),
-				FilePath:   filePath,
-			},
-			Data: data,
-		},
-	})
+	if _, err = file.Seek(begin, io.SeekStart); err != nil {
+		c.JSON(http.StatusOK, model.Resp{
+			Status:  StatusIoError,
+			Message: err.Error(),
+			Data:    nil,
+		})
+		return
+	}
+
+	c.Header("Range", utils.PackRange(begin, end))
+	if _, err := io.CopyN(c.Writer, file, end-begin+1); err != nil {
+		c.JSON(http.StatusOK, model.Resp{
+			Status:  StatusIoError,
+			Message: err.Error(),
+			Data:    nil,
+		})
+		return
+	}
 }
 
 func UploadHandle(c *gin.Context) {
