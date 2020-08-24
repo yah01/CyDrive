@@ -8,6 +8,7 @@ import (
 	. "github.com/yah01/CyDrive/consts"
 	"github.com/yah01/CyDrive/model"
 	"github.com/yah01/CyDrive/utils"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -144,7 +145,7 @@ func DownloadHandle(c *gin.Context) {
 func UploadHandle(c *gin.Context) {
 	if c.Request.ContentLength > FileSizeLimit {
 		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusFileTooLarge,
+			Status:  StatusFileTooLargeError,
 			Message: "file is too large",
 			Data:    nil,
 		})
@@ -154,10 +155,29 @@ func UploadHandle(c *gin.Context) {
 	userI, _ := c.Get("user")
 	user := userI.(*model.User)
 
-	filePath := c.Query("filepath")
-	filePath = filepath.Join(user.RootDir, filePath)
+	fileInfoJson, ok := c.GetPostForm("fileinfo")
+	if !ok {
+		c.JSON(http.StatusOK, model.Resp{
+			Status:  StatusNoParameterError,
+			Message: "need file info",
+			Data:    nil,
+		})
+		return
+	}
 
-	saveFile, err := os.Create(filePath)
+	fileInfo := model.FileInfo{}
+	if err := json.Unmarshal([]byte(fileInfoJson), &fileInfo); err != nil {
+		c.JSON(http.StatusOK, model.Resp{
+			Status:  StatusInternalError,
+			Message: "error when parsing file info",
+			Data:    nil,
+		})
+		return
+	}
+
+	filePath := filepath.Join(user.RootDir, fileInfo.FilePath)
+	saveFile, err := os.OpenFile(filePath,
+		os.O_RDWR|os.O_CREATE, os.FileMode(fileInfo.FileMode))
 	if err != nil {
 		c.JSON(http.StatusOK, model.Resp{
 			Status:  StatusIoError,
@@ -167,27 +187,16 @@ func UploadHandle(c *gin.Context) {
 		return
 	}
 
-	file := model.File{}
-	decoder := json.NewDecoder(c.Request.Body)
-	if err = decoder.Decode(&file); err != nil {
+	if n, err := io.Copy(saveFile, c.Request.Body); err != nil {
 		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusInternalError,
-			Message: err.Error(),
+			Status:  StatusIoError,
+			Message: fmt.Sprintf("written %v bytes,err: %s", n, err),
 			Data:    nil,
 		})
 		return
 	}
 
-	if _, err := saveFile.Write(file.Data); err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusInternalError,
-			Message: err.Error(),
-			Data:    nil,
-		})
-		return
-	}
-
-	if err = saveFile.Chmod(os.FileMode(file.FileMode)); err != nil {
+	if err = saveFile.Chmod(os.FileMode(fileInfo.FileMode)); err != nil {
 		c.JSON(http.StatusOK, model.Resp{
 			Status:  StatusInternalError,
 			Message: err.Error(),
@@ -197,14 +206,14 @@ func UploadHandle(c *gin.Context) {
 	}
 	if err = saveFile.Close(); err != nil {
 		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusInternalError,
+			Status:  StatusIoError,
 			Message: err.Error(),
 			Data:    nil,
 		})
 		return
 	}
 
-	if err = os.Chtimes(filePath, time.Now(), time.Unix(file.ModifyTime, 0)); err != nil {
+	if err = os.Chtimes(filePath, time.Now(), time.Unix(fileInfo.ModifyTime, 0)); err != nil {
 		c.JSON(http.StatusOK, model.Resp{
 			Status:  StatusInternalError,
 			Message: err.Error(),
@@ -258,7 +267,7 @@ func ChangeDirHandle(c *gin.Context) {
 	userSession.Set("user", user)
 	if err = userSession.Save(); err != nil {
 		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusInternalError,
+			Status:  StatusSessionError,
 			Message: err.Error(),
 			Data:    nil,
 		})

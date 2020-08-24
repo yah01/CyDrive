@@ -24,7 +24,9 @@ type CdpStatus = int
 const (
 	StatusOk CdpStatus = 0
 	StatusAuthError = (1<<iota)/2
-	StatusFileTooLarge
+	StatusNoParameterError
+	StatusSessionError
+	StatusFileTooLargeError
 	StatusIoError
 	StatusInternalError
 )
