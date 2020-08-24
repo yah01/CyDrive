@@ -41,18 +41,18 @@ func LoginAuth(router *gin.Engine) gin.HandlerFunc {
 			return
 		}
 
-		// flush expire time
+		// Flush expire time
 		userSession.Set("expire", time.Now().Add(time.Hour*12))
 		if err := userSession.Save();err!=nil {
 			c.AbortWithStatusJSON(http.StatusOK, model.Resp{
-				Status:  StatusInternalError,
+				Status:  StatusSessionError,
 				Message: err.Error(),
 				Data:    nil,
 			})
 			return
 		}
 
-		// store user struct into context
+		// Store user struct into context
 		c.Set("user", user)
 	}
 }
