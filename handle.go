@@ -117,6 +117,14 @@ func DownloadHandle(c *gin.Context) {
 	// absolute filepath
 	filePath = filepath.Join(user.RootDir, filePath)
 	fileinfo, _ := os.Stat(filePath)
+	if fileinfo.IsDir() {
+		c.JSON(http.StatusOK, model.Resp{
+			Status:  StatusIoError,
+			Message: "not a file",
+			Data:    nil,
+		})
+		return
+	}
 
 	// range
 	var begin, end int64 = 0, fileinfo.Size()
@@ -146,10 +154,10 @@ func DownloadHandle(c *gin.Context) {
 	}
 
 	c.Header("Range", utils.PackRange(begin, end))
-	if n, err := io.CopyN(c.Writer, file, end-begin+1); err != nil {
+	if _, err := io.CopyN(c.Writer, file, end-begin+1); err != nil {
 		c.JSON(http.StatusOK, model.Resp{
 			Status:  StatusIoError,
-			Message: fmt.Sprintf("written %v bytes, err: %s", n, err),
+			Message: err.Error(),
 			Data:    nil,
 		})
 		return
