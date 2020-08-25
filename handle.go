@@ -113,9 +113,9 @@ func GetFileInfoHandle(c *gin.Context) {
 
 	filePath := c.Query("filepath")
 	filePath = strings.Trim(filePath, string(os.PathSeparator))
-	filePath = filepath.Join(user.RootDir, filePath)
+	absFilePath := filepath.Join(user.RootDir, filePath)
 
-	fileInfo, err := os.Stat(filePath)
+	fileInfo, err := os.Stat(absFilePath)
 	if err != nil {
 		c.JSON(http.StatusOK, model.Resp{
 			Status:  StatusIoError,
@@ -129,9 +129,12 @@ func GetFileInfoHandle(c *gin.Context) {
 		Status:  StatusOk,
 		Message: "get file info done",
 		Data: model.FileInfo{
-			FileMode:   uint32(fileInfo.Mode()),
-			ModifyTime: fileInfo.ModTime().Unix(),
-			FilePath:   filePath,
+			FileMode:     uint32(fileInfo.Mode()),
+			ModifyTime:   fileInfo.ModTime().Unix(),
+			FilePath:     filePath,
+			Size:         fileInfo.Size(),
+			IsDir:        fileInfo.IsDir(),
+			IsCompressed: utils.ShouldCompressed(fileInfo),
 		},
 	})
 }

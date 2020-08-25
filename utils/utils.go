@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"crypto/sha256"
 	"fmt"
+	"github.com/yah01/CyDrive/consts"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -45,6 +46,10 @@ func UnpackRange(rangeStr string) (int64, int64) {
 	end, _ := strconv.ParseInt(tuple[1], 10, 64)
 
 	return begin, end
+}
+
+func ShouldCompressed(fileInfo os.FileInfo) bool {
+	return fileInfo.Size() > consts.CompressBaseline
 }
 
 func ForEachFile(path string, handle func(filename string)) {
