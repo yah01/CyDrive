@@ -5,7 +5,10 @@ package main
 import (
 	"bufio"
 	"fmt"
-	. "github.com/yah01/CyDrive/consts"
+	"fyne.io/fyne"
+	fyneApp "fyne.io/fyne/app"
+	"fyne.io/fyne/layout"
+	"fyne.io/fyne/widget"
 	"github.com/yah01/CyDrive/model"
 	"net/http"
 	"net/http/cookiejar"
@@ -33,13 +36,36 @@ func init() {
 		Timeout:       0,
 	}
 }
+
 var serverAddress = "127.0.0.1"
 
-func main() {
+var (
+	app            = fyneApp.New()
+	window         = app.NewWindow("CyDrive")
+	remoteFileList = widget.NewVBox()
+	loginButton    = widget.NewButton("Login", func() {
+		Login(user.Username, user.Password)
+	})
+	listButton = widget.NewButton("List", func() {
+		ListRemoteDir("")
+	})
+)
 
+func main() {
 	baseUrl = fmt.Sprintf("http://%s:6454", serverAddress)
+
+	remoteFileList.Resize(fyne.NewSize(100, 800))
+	window.SetContent(fyne.NewContainerWithLayout(
+		layout.NewCenterLayout(),
+		widget.NewVBox(
+			remoteFileList,
+			layout.NewSpacer(),
+			widget.NewHBox(loginButton, listButton)),
+	))
+	window.ShowAndRun()
+
 	Login(user.Username, user.Password)
-	ListRemoteDir()
+	ListRemoteDir("")
 
 	var (
 		cmd    string
@@ -57,7 +83,7 @@ func main() {
 		case LOGIN:
 			Login(cmdSplit[1], cmdSplit[2])
 		case LIST:
-			ListRemoteDir()
+			ListRemoteDir("")
 		case GET:
 			Download(cmdSplit[1])
 		case SEND:

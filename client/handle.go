@@ -36,7 +36,7 @@ func Login(username string, password string) {
 	fmt.Println(GetRespInfo(resp))
 }
 
-func ListRemoteDir(path ...string) {
+func ListRemoteDir(path string) {
 	if len(path) == 0 {
 		Url, _ := url.Parse(baseUrl + "/list")
 		resp, err := client.Get(Url.String())
@@ -46,12 +46,16 @@ func ListRemoteDir(path ...string) {
 		}
 		defer resp.Body.Close()
 
-		data,err := ioutil.ReadAll(resp.Body)
+		data, err := ioutil.ReadAll(resp.Body)
 		res := model.Resp{}
-		json.Unmarshal(data,&res)
+		json.Unmarshal(data, &res)
 		list := res.Data.([]interface{})
-
-		for _,file := range list {
+		for _, file := range list {
+			fileInfo := file.(map[string]interface{})
+			remoteFileList.Append(NewTappableLabel(model.NewFileInfoFromMap(fileInfo),
+				func(fileinfo model.FileInfo) {
+					fmt.Println("tap %v", fileinfo)
+				}))
 			fmt.Println(file)
 		}
 	}

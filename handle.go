@@ -83,9 +83,9 @@ func ListHandle(c *gin.Context) {
 
 	path := c.Query("path")
 	path = strings.Trim(path, string(os.PathSeparator))
-	path = filepath.Join(user.RootDir, path)
+	absPath := filepath.Join(user.RootDir, path)
 
-	fileList, err := ioutil.ReadDir(path)
+	fileList, err := ioutil.ReadDir(absPath)
 	if err != nil {
 		c.JSON(http.StatusOK, model.Resp{
 			Status:  StatusIoError,
@@ -95,10 +95,10 @@ func ListHandle(c *gin.Context) {
 		return
 	}
 
-	resp := make([]string, 0, len(fileList))
+	resp := make([]model.FileInfo, 0, len(fileList))
 	for _, file := range fileList {
-		resp = append(resp,
-			fmt.Sprintf("%s %s %s", file.Mode(), file.ModTime(), file.Name()))
+		resp = append(resp, model.NewFileInfo(file,
+			filepath.Join(path, file.Name())))
 	}
 	c.JSON(http.StatusOK, model.Resp{
 		Status:  StatusOk,
@@ -128,14 +128,7 @@ func GetFileInfoHandle(c *gin.Context) {
 	c.JSON(http.StatusOK, model.Resp{
 		Status:  StatusOk,
 		Message: "get file info done",
-		Data: model.FileInfo{
-			FileMode:     uint32(fileInfo.Mode()),
-			ModifyTime:   fileInfo.ModTime().Unix(),
-			FilePath:     filePath,
-			Size:         fileInfo.Size(),
-			IsDir:        fileInfo.IsDir(),
-			IsCompressed: utils.ShouldCompressed(fileInfo),
-		},
+		Data:    model.NewFileInfo(fileInfo, filePath),
 	})
 }
 
@@ -268,14 +261,8 @@ func UploadHandle(c *gin.Context) {
 		})
 		return
 	}
-	if err = saveFile.Close(); err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusIoError,
-			Message: err.Error(),
-			Data:    nil,
-		})
-		return
-	}
+
+	saveFile.Close()
 
 	if err = os.Chtimes(filePath, time.Now(), time.Unix(fileInfo.ModifyTime, 0)); err != nil {
 		c.JSON(http.StatusOK, model.Resp{
