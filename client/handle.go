@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/mholt/archiver/v3"
+	"github.com/yah01/CyDrive/client/widget"
 	"github.com/yah01/CyDrive/model"
 	"github.com/yah01/CyDrive/utils"
 	"io"
@@ -51,11 +52,11 @@ func ListRemoteDir(path string) {
 		json.Unmarshal(data, &res)
 		list := res.Data.([]interface{})
 		for _, file := range list {
-			fileInfo := file.(map[string]interface{})
-			remoteFileList.Append(NewTappableLabel(model.NewFileInfoFromMap(fileInfo),
-				func(fileinfo model.FileInfo) {
-					fmt.Println("tap %v", fileinfo)
-				}))
+			fileInfoMap := file.(map[string]interface{})
+			fileInfo := model.NewFileInfoFromMap(fileInfoMap)
+			fileList.AddObject(widget.NewFileInfoItem(fileInfo, func() {
+				fmt.Println(fileInfo)
+			}))
 			fmt.Println(file)
 		}
 	}

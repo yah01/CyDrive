@@ -3,17 +3,15 @@ package main
 // a simple cydrive client only for test
 
 import (
-	"bufio"
 	"fmt"
 	"fyne.io/fyne"
 	fyneApp "fyne.io/fyne/app"
 	"fyne.io/fyne/layout"
+	"fyne.io/fyne/theme"
 	"fyne.io/fyne/widget"
 	"github.com/yah01/CyDrive/model"
 	"net/http"
 	"net/http/cookiejar"
-	"os"
-	"strings"
 )
 
 var (
@@ -40,61 +38,49 @@ func init() {
 var serverAddress = "127.0.0.1"
 
 var (
-	app            = fyneApp.New()
-	window         = app.NewWindow("CyDrive")
-	remoteFileList = widget.NewVBox()
-	loginButton    = widget.NewButton("Login", func() {
+	app         = fyneApp.New()
+	window      = app.NewWindow("CyDrive")
+	fileList    = fyne.NewContainer()
+	loginButton = widget.NewButton("Login", func() {
 		Login(user.Username, user.Password)
 	})
 	listButton = widget.NewButton("List", func() {
 		ListRemoteDir("")
 	})
+
+	taskListTab  = widget.NewTabItem("Task", widget.NewLabel("Task List"))
+	driveTab     = widget.NewTabItem("Drive", widget.NewLabel("File List"))
+	settingTab   = widget.NewTabItem("Setting", widget.NewLabel("Setting Items"))
+	tabContainer = widget.NewTabContainer(taskListTab, driveTab, settingTab)
 )
 
 func main() {
+	tabContainer.SetTabLocation(widget.TabLocationBottom)
 	baseUrl = fmt.Sprintf("http://%s:6454", serverAddress)
-
-	remoteFileList.Resize(fyne.NewSize(100, 800))
-	window.SetContent(fyne.NewContainerWithLayout(
-		layout.NewCenterLayout(),
-		widget.NewVBox(
-			remoteFileList,
-			layout.NewSpacer(),
-			widget.NewHBox(loginButton, listButton)),
-	))
-	window.ShowAndRun()
-
+	app.Settings().SetTheme(theme.LightTheme())
 	Login(user.Username, user.Password)
 	ListRemoteDir("")
+	tabContainer.SelectTab(driveTab)
 
-	var (
-		cmd    string
-		reader = bufio.NewReader(os.Stdin)
-	)
+	window.SetContent(fyne.NewContainerWithLayout(layout.NewVBoxLayout(),
+		widget.NewLabelWithStyle("CyDrive",
+			fyne.TextAlignCenter, fyne.TextStyle{
+				Bold:   true,
+				Italic: true,
+			}),
 
-	for {
-		cmd, _ = reader.ReadString('\n')
-		cmd = strings.TrimSpace(cmd)
-		cmdSplit := strings.Split(cmd, " ")
-		cmd = strings.ToUpper(cmdSplit[0])
+		layout.NewSpacer(),
 
-		switch cmd {
-		// communicate with server:
-		case LOGIN:
-			Login(cmdSplit[1], cmdSplit[2])
-		case LIST:
-			ListRemoteDir("")
-		case GET:
-			Download(cmdSplit[1])
-		case SEND:
-			Upload(cmdSplit[1])
-		case RCD:
-			ChangeRemoteDir(cmdSplit[1])
-		case QUIT:
-			client.CloseIdleConnections()
-			return
+		fyne.NewContainerWithLayout(layout.NewGridLayoutWithColumns(4),
+			fileList.Objects...,
+		),
 
-			// not communicate with server
-		}
-	}
+		layout.NewSpacer(),
+
+		fyne.NewContainerWithLayout(layout.NewCenterLayout(),
+			tabContainer,
+		),
+	))
+
+	window.ShowAndRun()
 }

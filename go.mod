@@ -23,6 +23,8 @@ require (
 	github.com/pierrec/lz4 v2.5.2+incompatible // indirect
 	github.com/ulikunitz/xz v0.5.7 // indirect
 	github.com/yah01/cyflag v0.0.0-20200413173245-f97e56b4f8fa
+	golang.org/x/image v0.0.0-20200430140353-33d19683fad8
+	golang.org/x/mobile v0.0.0-20200801112145-973feb4309de // indirect
 	golang.org/x/sys v0.0.0-20200808120158-1030fc2bf1d9 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
