@@ -152,7 +152,7 @@ func DownloadHandle(c *gin.Context) {
 	}
 
 	// range
-	var begin, end int64 = 0, fileinfo.Size()
+	var begin, end int64 = 0, fileinfo.Size() - 1
 	bytesRange := c.GetHeader("Range")
 	if len(bytesRange) > 0 {
 		begin, end = utils.UnpackRange(bytesRange)
@@ -202,7 +202,7 @@ func UploadHandle(c *gin.Context) {
 	userI, _ := c.Get("user")
 	user := userI.(*model.User)
 
-	fileInfoJson, ok := c.GetPostForm("fileinfo")
+	fileInfoJson, ok := c.GetQuery("fileinfo")
 	if !ok {
 		c.JSON(http.StatusOK, model.Resp{
 			Status:  StatusNoParameterError,
@@ -224,7 +224,7 @@ func UploadHandle(c *gin.Context) {
 
 	filePath := filepath.Join(user.RootDir, fileInfo.FilePath)
 	fileDir := filepath.Dir(filePath)
-	if err := os.MkdirAll(fileDir, os.FileMode(fileInfo.FileMode)); err != nil {
+	if err := os.MkdirAll(fileDir, 0777); err != nil {
 		c.JSON(http.StatusOK, model.Resp{
 			Status:  StatusInternalError,
 			Message: err.Error(),

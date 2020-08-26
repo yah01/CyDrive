@@ -3,9 +3,12 @@ package utils
 import (
 	"crypto/md5"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"github.com/yah01/CyDrive/consts"
+	"github.com/yah01/CyDrive/model"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -52,12 +55,28 @@ func ShouldCompressed(fileInfo os.FileInfo) bool {
 	return fileInfo.Size() > consts.CompressBaseline
 }
 
-func ForEachFile(path string, handle func(filename string)) {
-	fileinfo, _ := os.Stat(path)
+func GetResp(resp *http.Response) *model.Resp {
+	bytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil
+	}
+	res := model.Resp{}
+	if err = json.Unmarshal(bytes, &res); err != nil {
+		return nil
+	}
+	return &res
+}
 
+func ForEachFile(path string, handle func(file *os.File)) {
+	fileinfo, err := os.Stat(path)
+	if err != nil {
+		fmt.Println(err, path)
+		return
+	}
 	if !fileinfo.IsDir() {
 		file, _ := os.Open(path)
-		handle(file.Name())
+		handle(file)
+		file.Close()
 		return
 	}
 
@@ -65,6 +84,28 @@ func ForEachFile(path string, handle func(filename string)) {
 
 	for _, fileinfo = range fileinfoList {
 		ForEachFile(filepath.Join(path, fileinfo.Name()), handle)
+	}
+}
+
+func ForEachRemoteFile(path string,
+	getFileInfo func(path string) *model.FileInfo,
+	readDir func(path string) []*model.FileInfo,
+	handle func(file *model.FileInfo)) {
+
+	fileInfo := getFileInfo(path)
+	if fileInfo == nil {
+		fmt.Println("can't get file info:", path)
+		return
+	}
+	if !fileInfo.IsDir {
+		handle(fileInfo)
+		return
+	}
+
+	fileinfoList := readDir(path)
+
+	for _, fileInfo = range fileinfoList {
+		ForEachRemoteFile(fileInfo.FilePath, getFileInfo, readDir, handle)
 	}
 }
 

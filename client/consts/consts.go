@@ -1,4 +1,4 @@
-package main
+package consts
 
 type Command = string
 const (
@@ -13,4 +13,9 @@ const (
 	QUIT Command = "QUIT"
 
 	Delim = '\n'
+)
+
+var (
+	BasePath string
+	BaseUrl string
 )

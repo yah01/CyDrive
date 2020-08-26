@@ -4,3 +4,7 @@ test.http
 CyDrive.exe
 client/client
 client/client.app
+client/desktop/desktop
+.DS_Store
+client/.DS_Store
+main

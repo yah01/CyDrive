@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/yah01/CyDrive/utils"
+	"github.com/yah01/CyDrive/consts"
 	"os"
 	"reflect"
 )
@@ -22,11 +22,11 @@ func NewFileInfo(fileInfo os.FileInfo, path string) FileInfo {
 		FilePath:     path,
 		Size:         fileInfo.Size(),
 		IsDir:        fileInfo.IsDir(),
-		IsCompressed: utils.ShouldCompressed(fileInfo),
+		IsCompressed: fileInfo.Size() > consts.CompressBaseline,
 	}
 }
 
-func NewFileInfoFromMap(infoMap map[string]interface{}) FileInfo {
+func NewFileInfoFromMap(infoMap map[string]interface{}) *FileInfo {
 	fileInfo := FileInfo{}
 	value := reflect.ValueOf(&fileInfo)
 	typeOf := reflect.TypeOf(fileInfo)
@@ -36,5 +36,5 @@ func NewFileInfoFromMap(infoMap map[string]interface{}) FileInfo {
 		newValue := reflect.ValueOf(tag).Convert(field.Type())
 		field.Set(newValue)
 	}
-	return fileInfo
+	return &fileInfo
 }
