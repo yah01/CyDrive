@@ -3,6 +3,7 @@
     "id": 1,
     "username": "test",
     "password": "testCyDrive",
+    "cap": 10737418240,
     "root_dir": "/Users/3commas1/server",
     "work_path": ""
   }
