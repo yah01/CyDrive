@@ -111,7 +111,7 @@ func GetFileInfoHandle(c *gin.Context) {
 	userI, _ := c.Get("user")
 	user := userI.(*model.User)
 
-	filePath := c.Query("filepath")
+	filePath := c.Query("path")
 	filePath = strings.Trim(filePath, string(os.PathSeparator))
 	absFilePath := filepath.Join(user.RootDir, filePath)
 
@@ -137,7 +137,7 @@ func DownloadHandle(c *gin.Context) {
 	user := userI.(*model.User)
 
 	// relative path
-	filePath := c.Query("filepath")
+	filePath := c.Query("path")
 
 	// absolute filepath
 	filePath = filepath.Join(user.RootDir, filePath)
@@ -190,6 +190,7 @@ func DownloadHandle(c *gin.Context) {
 }
 
 func UploadHandle(c *gin.Context) {
+	// Check file size
 	if c.Request.ContentLength > FileSizeLimit {
 		c.JSON(http.StatusOK, model.Resp{
 			Status:  StatusFileTooLargeError,
@@ -201,6 +202,17 @@ func UploadHandle(c *gin.Context) {
 
 	userI, _ := c.Get("user")
 	user := userI.(*model.User)
+
+	// Check user storage capability
+	if c.Request.ContentLength+user.Usage > user.Cap {
+		c.JSON(http.StatusOK, model.Resp{
+			Status: StatusFileTooLargeError,
+			Message: fmt.Sprintf("no enough capability, free storage: %vMB",
+				(user.Cap-user.Usage)>>20), // Convert Byte to MB
+			Data: nil,
+		})
+		return
+	}
 
 	fileInfoJson, ok := c.GetQuery("fileinfo")
 	if !ok {

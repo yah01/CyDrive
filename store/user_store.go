@@ -9,6 +9,7 @@ import (
 	. "github.com/yah01/CyDrive/consts"
 	"github.com/yah01/CyDrive/model"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 )
 
@@ -30,8 +31,13 @@ func NewMemStore(userJson string) *MemStore {
 	userArray := make([]*model.User, 1)
 	json.Unmarshal(data, &userArray)
 	for _, user := range userArray {
+		// Get the storage usage
+		rootDirInfo,_ := os.Stat(user.RootDir)
+		user.Usage = rootDirInfo.Size()
+
 		store.userNameMap[user.Username] = user
 	}
+
 	return &store
 }
 
