@@ -58,25 +58,25 @@ func ShouldCompressed(fileInfo os.FileInfo) bool {
 func GetResp(resp *http.Response) *model.Resp {
 	bytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		fmt.Println(err)
 		return nil
 	}
 	res := model.Resp{}
 	if err = json.Unmarshal(bytes, &res); err != nil {
+		fmt.Println(err)
 		return nil
 	}
 	return &res
 }
 
-func ForEachFile(path string, handle func(file *os.File)) {
+func ForEachFile(path string, handle func(path string)) {
 	fileinfo, err := os.Stat(path)
 	if err != nil {
 		fmt.Println(err, path)
 		return
 	}
 	if !fileinfo.IsDir() {
-		file, _ := os.Open(path)
-		handle(file)
-		file.Close()
+		go handle(path)
 		return
 	}
 
@@ -98,7 +98,7 @@ func ForEachRemoteFile(path string,
 		return
 	}
 	if !fileInfo.IsDir {
-		handle(fileInfo)
+		go handle(fileInfo)
 		return
 	}
 

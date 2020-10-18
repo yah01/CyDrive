@@ -11,48 +11,49 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 )
 
-func LoginHandle(c *gin.Context) {
+func (server *Server) LoginHandle(c *gin.Context) {
 	username, ok := c.GetPostForm("username")
 	if !ok {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusAuthError,
-			Message: "no user name",
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusAuthError,
+			"no user name",
+			nil,
+		))
 		return
 	}
 
 	password, ok := c.GetPostForm("password")
 	if !ok {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusAuthError,
-			Message: "no password",
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusAuthError,
+			"no password",
+			nil,
+		))
 		return
 	}
 
-	user := userStore.GetUserByName(username)
+	user := server.userStore.GetUserByName(username)
 	if user == nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusAuthError,
-			Message: "no such user",
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusAuthError,
+			"no such user",
+			nil,
+		))
 		return
 	}
 	if utils.PasswordHash(user.Password) != password {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusAuthError,
-			Message: "user name or password not correct",
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusAuthError,
+			"user name or password not correct",
+			nil,
+		))
 		return
 	}
 
@@ -62,36 +63,36 @@ func LoginHandle(c *gin.Context) {
 	userSession.Set("expire", time.Now().Add(time.Hour*12))
 	err := userSession.Save()
 	if err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusInternalError,
-			Message: err.Error(),
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusInternalError,
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
-	c.JSON(http.StatusOK, model.Resp{
-		Status:  StatusOk,
-		Message: "Welcome to CyDrive!",
-		Data:    nil,
-	})
+	c.JSON(http.StatusOK, model.PackResp(
+		StatusOk,
+		"Welcome to CyDrive!",
+		nil,
+	))
 }
 
-func ListHandle(c *gin.Context) {
+func (server *Server) ListHandle(c *gin.Context) {
 	userI, _ := c.Get("user")
 	user := userI.(*model.User)
 
-	path := c.Query("path")
+	path, _ := url.QueryUnescape(c.Query("path"))
 	path = strings.Trim(path, string(os.PathSeparator))
 	absPath := filepath.Join(user.RootDir, path)
 
 	fileList, err := ioutil.ReadDir(absPath)
 	if err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusIoError,
-			Message: err.Error(),
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusIoError,
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
@@ -100,54 +101,59 @@ func ListHandle(c *gin.Context) {
 		resp = append(resp, model.NewFileInfo(file,
 			filepath.Join(path, file.Name())))
 	}
-	c.JSON(http.StatusOK, model.Resp{
-		Status:  StatusOk,
-		Message: "list done",
-		Data:    resp,
-	})
+
+	c.JSON(http.StatusOK, model.PackResp(
+		StatusOk,
+		"list done",
+		resp,
+	))
 }
 
-func GetFileInfoHandle(c *gin.Context) {
+func (server *Server) GetFileInfoHandle(c *gin.Context) {
 	userI, _ := c.Get("user")
 	user := userI.(*model.User)
 
-	filePath := c.Query("path")
+	filePath, _ := url.QueryUnescape(c.Query("path"))
 	filePath = strings.Trim(filePath, string(os.PathSeparator))
 	absFilePath := filepath.Join(user.RootDir, filePath)
 
 	fileInfo, err := os.Stat(absFilePath)
 	if err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusIoError,
-			Message: err.Error(),
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusIoError,
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
-	c.JSON(http.StatusOK, model.Resp{
-		Status:  StatusOk,
-		Message: "get file info done",
-		Data:    model.NewFileInfo(fileInfo, filePath),
-	})
+	c.JSON(http.StatusOK, model.PackResp(
+		StatusOk,
+		"get file info done",
+		model.NewFileInfo(fileInfo, filePath),
+	))
 }
 
-func DownloadHandle(c *gin.Context) {
+func (server *Server) PutFileInfoHandle(c *gin.Context) {
+
+}
+
+func (server *Server) GetFileHandle(c *gin.Context) {
 	userI, _ := c.Get("user")
 	user := userI.(*model.User)
 
 	// relative path
-	filePath := c.Query("path")
+	filePath, _ := url.QueryUnescape(c.Query("path"))
 
 	// absolute filepath
 	filePath = filepath.Join(user.RootDir, filePath)
 	fileinfo, _ := os.Stat(filePath)
 	if fileinfo.IsDir() {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusIoError,
-			Message: "not a file",
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusIoError,
+			"not a file",
+			nil,
+		))
 		return
 	}
 
@@ -160,43 +166,43 @@ func DownloadHandle(c *gin.Context) {
 
 	file, err := os.Open(filePath)
 	if err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusIoError,
-			Message: err.Error(),
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusIoError,
+			err.Error(),
+			nil,
+		))
 		return
 	}
 	defer file.Close()
 
 	if _, err = file.Seek(begin, io.SeekStart); err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusIoError,
-			Message: err.Error(),
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusIoError,
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
 	c.Header("Range", utils.PackRange(begin, end))
 	if _, err := io.CopyN(c.Writer, file, end-begin+1); err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusIoError,
-			Message: err.Error(),
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusIoError,
+			err.Error(),
+			nil,
+		))
 		return
 	}
 }
 
-func UploadHandle(c *gin.Context) {
+func (server *Server) PutFileHandle(c *gin.Context) {
 	// Check file size
 	if c.Request.ContentLength > FileSizeLimit {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusFileTooLargeError,
-			Message: "file is too large",
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusFileTooLargeError,
+			"file is too large",
+			nil,
+		))
 		return
 	}
 
@@ -205,98 +211,103 @@ func UploadHandle(c *gin.Context) {
 
 	// Check user storage capability
 	if c.Request.ContentLength+user.Usage > user.Cap {
-		c.JSON(http.StatusOK, model.Resp{
-			Status: StatusFileTooLargeError,
-			Message: fmt.Sprintf("no enough capability, free storage: %vMB",
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusFileTooLargeError,
+			fmt.Sprintf("no enough capability, free storage: %vMB",
 				(user.Cap-user.Usage)>>20), // Convert Byte to MB
-			Data: nil,
-		})
+			nil,
+		))
 		return
 	}
 
 	fileInfoJson, ok := c.GetQuery("fileinfo")
 	if !ok {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusNoParameterError,
-			Message: "need file info",
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusNoParameterError,
+			"need file info",
+			nil,
+		))
 		return
 	}
+	fileInfoJson, _ = url.QueryUnescape(fileInfoJson)
 
 	fileInfo := model.FileInfo{}
 	if err := json.Unmarshal([]byte(fileInfoJson), &fileInfo); err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusInternalError,
-			Message: "error when parsing file info",
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusInternalError,
+			"error when parsing file info",
+			nil,
+		))
 		return
 	}
 
 	filePath := filepath.Join(user.RootDir, fileInfo.FilePath)
 	fileDir := filepath.Dir(filePath)
 	if err := os.MkdirAll(fileDir, 0777); err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusInternalError,
-			Message: err.Error(),
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusInternalError,
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
 	saveFile, err := os.OpenFile(filePath,
 		os.O_RDWR|os.O_CREATE, os.FileMode(fileInfo.FileMode))
 	if err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusIoError,
-			Message: err.Error(),
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusIoError,
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
 	if n, err := io.Copy(saveFile, c.Request.Body); err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusIoError,
-			Message: fmt.Sprintf("written %v bytes,err: %s", n, err),
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusIoError,
+			fmt.Sprintf("written %v bytes,err: %s", n, err),
+			nil,
+		))
 		return
 	}
 
 	if err = saveFile.Chmod(os.FileMode(fileInfo.FileMode)); err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusInternalError,
-			Message: err.Error(),
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusInternalError,
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
 	saveFile.Close()
 
 	if err = os.Chtimes(filePath, time.Now(), time.Unix(fileInfo.ModifyTime, 0)); err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusInternalError,
-			Message: err.Error(),
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusInternalError,
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
-	c.JSON(http.StatusOK, model.Resp{
-		Status:  StatusOk,
-		Message: "upload done",
-		Data:    nil,
-	})
+	c.JSON(http.StatusOK, model.PackResp(
+		StatusOk,
+		"upload done",
+		nil,
+	))
 }
 
-func ChangeDirHandle(c *gin.Context) {
+func (server *Server) DeleteFileHandle(c *gin.Context) {
+
+}
+
+func (server *Server) ChangeDirHandle(c *gin.Context) {
 	userInterface, _ := c.Get("user")
 	user := userInterface.(*model.User)
 
-	path := c.Query("path")
+	path, _ := url.QueryUnescape(c.Query("path"))
 	path = strings.Trim(path, string(os.PathSeparator))
 	mkdir := c.Query("mkdir")
 
@@ -305,22 +316,22 @@ func ChangeDirHandle(c *gin.Context) {
 	path = filepath.Join(user.RootDir, path)
 	if mkdir == "1" {
 		if err = os.MkdirAll(path, 0666); err != nil {
-			c.JSON(http.StatusOK, model.Resp{
-				Status:  StatusInternalError,
-				Message: err.Error(),
-				Data:    nil,
-			})
+			c.JSON(http.StatusOK, model.PackResp(
+				StatusInternalError,
+				err.Error(),
+				nil,
+			))
 			return
 		}
 	}
 
 	_, err = os.Stat(path)
 	if err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusInternalError,
-			Message: err.Error(),
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusInternalError,
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
@@ -329,23 +340,23 @@ func ChangeDirHandle(c *gin.Context) {
 	userSession := sessions.DefaultMany(c, "user")
 	userSession.Set("user", user)
 	if err = userSession.Save(); err != nil {
-		c.JSON(http.StatusOK, model.Resp{
-			Status:  StatusSessionError,
-			Message: err.Error(),
-			Data:    nil,
-		})
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusSessionError,
+			err.Error(),
+			nil,
+		))
 		return
 	}
 
-	c.JSON(http.StatusOK, model.Resp{
-		Status:  StatusOk,
-		Message: fmt.Sprintf("you are now in home/%s", user.WorkDir),
-		Data:    nil,
-	})
+	c.JSON(http.StatusOK, model.PackResp(
+		StatusOk,
+		fmt.Sprintf("you are now in home/%s", user.WorkDir),
+		nil,
+	))
 }
 
 // The client sends a list consist of all files containing modification time and md5
-//func SyncHandle(c *gin.Context) {
+//func (server *Server) SyncHandle(c *gin.Context) {
 //	bodyScanner := bufio.NewScanner(c.Request.Body)
 //
 //	for bodyScanner.Scan() {

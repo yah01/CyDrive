@@ -14,7 +14,7 @@ var (
 
 func init() {
 	// Parse args
-	//cyflag.BoolVar(&isServer, "--server", false, "whether run as a cdv cdpServer")
+	//cyflag.BoolVar(&isServer, "--bin", false, "whether run as a cdv cdpServer")
 	cyflag.BoolVar(&isOnline, "--online", false, "whether is online")
 	cyflag.StringVar(&serverAddress, "-h", "localhost", "set the CyDrive Server address")
 	cyflag.Parse()
@@ -38,6 +38,6 @@ func init() {
 
 func main() {
 	dbConfig.UserStoreType = "mem"
-	InitServer(dbConfig)
-	RunServer()
+	server := NewServer(dbConfig)
+	server.Run()
 }

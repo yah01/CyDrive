@@ -2,9 +2,9 @@ CyDrive
 test.http
 .idea
 CyDrive.exe
-client/client
-client/client.app
-client/desktop/desktop
+bin/client/client
+bin/client/client.app
+bin/client/desktop/desktop
 .DS_Store
-client/.DS_Store
+bin/client/.DS_Store
 main

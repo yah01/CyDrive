@@ -13,34 +13,45 @@ import (
 	"time"
 )
 
-var (
+type Server struct {
+	Config    config.Config
 	userStore store.UserStore
 	router    *gin.Engine
-)
-
-func InitServer(config config.Config) {
-	if config.UserStoreType == "mem" {
-		userStore = store.NewMemStore("user_data/user.json")
-	}
-
-	router = gin.Default()
-	gob.Register(&model.User{})
-	gob.Register(time.Time{})
 }
 
-func RunServer() {
+func NewServer(config config.Config) *Server {
+	server := Server{
+		Config: config,
+	}
+
+	if config.UserStoreType == "mem" {
+		server.userStore = store.NewMemStore("user_data/user.json")
+	}
+
+	server.router = gin.Default()
+	gob.Register(&model.User{})
+	gob.Register(time.Time{})
+
+	return &server
+}
+
+func (server *Server) Run() {
 	memStore := memstore.NewStore([]byte("ProjectMili"))
 
-	router.Use(sessions.SessionsMany([]string{"user"}, memStore))
-	router.Use(LoginAuth(router))
-	//router.Use(SetFileInfo())
+	server.router.Use(sessions.SessionsMany([]string{"user"}, memStore))
+	server.router.Use(LoginAuth(server.router))
+	//bin.router.Use(SetFileInfo())
 
-	router.POST("/login", LoginHandle)
-	router.GET("/list", ListHandle)
-	router.GET("/get_file_info",GetFileInfoHandle)
-	router.GET("/download", DownloadHandle)
-	router.POST("/upload", UploadHandle)
-	router.GET("/change_dir", ChangeDirHandle)
-	//router.GET("/sync",SyncHandle)
-	router.Run(ListenPort)
+	server.router.POST("/login", server.LoginHandle)
+
+	server.router.GET("/list", server.ListHandle)
+
+	server.router.GET("/file_info", server.GetFileInfoHandle)
+	server.router.PUT("/file_info", server.PutFileInfoHandle)
+
+	server.router.GET("/file", server.GetFileHandle)
+	server.router.PUT("/file", server.PutFileHandle)
+	server.router.DELETE("/file", server.DeleteFileHandle)
+
+	server.router.Run(ListenPort)
 }

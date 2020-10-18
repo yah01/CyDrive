@@ -23,32 +23,32 @@ func LoginAuth(router *gin.Engine) gin.HandlerFunc {
 		user := userSession.Get("userStruct")
 		expire := userSession.Get("expire")
 		if user == nil || expire == nil {
-			c.AbortWithStatusJSON(http.StatusOK, model.Resp{
-				Status:  StatusAuthError,
-				Message: "not login",
-				Data:    nil,
-			})
+			c.AbortWithStatusJSON(http.StatusOK, model.PackResp(
+				StatusAuthError,
+				"not login",
+				nil,
+			))
 			return
 		}
 
 		if !expire.(time.Time).After(time.Now()) {
-			c.AbortWithStatusJSON(http.StatusOK, model.Resp{
-				Status:  StatusAuthError,
-				Message: "timeout, login again",
-				Data:    nil,
-			})
+			c.AbortWithStatusJSON(http.StatusOK, model.PackResp(
+				StatusAuthError,
+				"timeout, login again",
+				nil,
+			))
 			userSession.Clear()
 			return
 		}
 
 		// Flush expire time
 		userSession.Set("expire", time.Now().Add(time.Hour*12))
-		if err := userSession.Save();err!=nil {
-			c.AbortWithStatusJSON(http.StatusOK, model.Resp{
-				Status:  StatusSessionError,
-				Message: err.Error(),
-				Data:    nil,
-			})
+		if err := userSession.Save(); err != nil {
+			c.AbortWithStatusJSON(http.StatusOK, model.PackResp(
+				StatusSessionError,
+				err.Error(),
+				nil,
+			))
 			return
 		}
 
@@ -62,12 +62,12 @@ func SetFileInfo() gin.HandlerFunc {
 		fileinfoStr := c.Query("fileinfo")
 		if len(fileinfoStr) > 0 {
 			fileinfo := model.FileInfo{}
-			err := json.Unmarshal([]byte(fileinfoStr),&fileinfo)
+			err := json.Unmarshal([]byte(fileinfoStr), &fileinfo)
 			if err != nil {
 				fmt.Println(err)
 			}
 
-			c.Set("fileinfo",fileinfo)
+			c.Set("fileinfo", fileinfo)
 		}
 	}
 }

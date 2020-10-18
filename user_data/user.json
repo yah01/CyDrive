@@ -3,7 +3,16 @@
     "id": 1,
     "username": "test",
     "password": "testCyDrive",
-    "root_dir": "C:\\cydrive",
+    "cap": 1073741824,
+    "root_dir": "/root/CyDrive/user_data/test",
+    "work_path": ""
+  },
+  {
+    "id": 95,
+    "username": "yah01",
+    "password": "Youarehacked01",
+    "cap": 10737418240,
+    "root_dir": "/root/CyDrive/user_data/yah2er0ne",
     "work_path": ""
   }
 ]
