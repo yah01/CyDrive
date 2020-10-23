@@ -44,14 +44,17 @@ func (server *Server) Run() {
 
 	server.router.POST("/login", server.LoginHandle)
 
-	server.router.GET("/list", server.ListHandle)
+	listGroup := server.router.Group("/list")
+	listGroup.GET("/*path", server.ListHandle)
 
-	server.router.GET("/file_info", server.GetFileInfoHandle)
-	server.router.PUT("/file_info", server.PutFileInfoHandle)
+	fileInfoGroup := server.router.Group("/file_info")
+	fileInfoGroup.GET("/*path",server.GetFileInfoHandle)
+	fileInfoGroup.PUT("/*path", server.PutFileInfoHandle)
 
-	server.router.GET("/file", server.GetFileHandle)
-	server.router.PUT("/file", server.PutFileHandle)
-	server.router.DELETE("/file", server.DeleteFileHandle)
+	fileGroup := server.router.Group("/file")
+	fileGroup.GET("/*path", server.GetFileHandle)
+	fileGroup.PUT("/*path", server.PutFileHandle)
+	fileGroup.DELETE("/*path", server.DeleteFileHandle)
 
 	server.router.Run(ListenPort)
 }

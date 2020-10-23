@@ -82,7 +82,7 @@ func (server *Server) ListHandle(c *gin.Context) {
 	userI, _ := c.Get("user")
 	user := userI.(*model.User)
 
-	path, _ := url.QueryUnescape(c.Query("path"))
+	path, _ := url.QueryUnescape(c.Param("path"))
 	path = strings.Trim(path, string(os.PathSeparator))
 	absPath := filepath.Join(user.RootDir, path)
 
@@ -113,7 +113,7 @@ func (server *Server) GetFileInfoHandle(c *gin.Context) {
 	userI, _ := c.Get("user")
 	user := userI.(*model.User)
 
-	filePath, _ := url.QueryUnescape(c.Query("path"))
+	filePath, _ := url.QueryUnescape(c.Param("path"))
 	filePath = strings.Trim(filePath, string(os.PathSeparator))
 	absFilePath := filepath.Join(user.RootDir, filePath)
 
@@ -135,7 +135,57 @@ func (server *Server) GetFileInfoHandle(c *gin.Context) {
 }
 
 func (server *Server) PutFileInfoHandle(c *gin.Context) {
+	userI, _ := c.Get("user")
+	user := userI.(*model.User)
 
+	filePath, _ := url.QueryUnescape(c.Param("path"))
+	filePath = strings.Trim(filePath, string(os.PathSeparator))
+	absFilePath := filepath.Join(user.RootDir, filePath)
+
+	fileInfoJson, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusIoError,
+			fmt.Sprintf("read file info error: %+v", err),
+			nil,
+		))
+		return
+	}
+
+	var fileInfo model.FileInfo
+	err = json.Unmarshal(fileInfoJson, &fileInfo)
+	if err != nil {
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusInternalError,
+			fmt.Sprintf("marshal file info error: %+v", err),
+			nil,
+		))
+		return
+	}
+
+	if err = os.Chmod(absFilePath, os.FileMode(fileInfo.FileMode)); err != nil {
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusInternalError,
+			err.Error(),
+			nil,
+		))
+		return
+	}
+
+	if err = os.Chtimes(absFilePath, time.Now(), time.Unix(fileInfo.ModifyTime, 0)); err != nil {
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusInternalError,
+			err.Error(),
+			nil,
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, model.PackResp(
+		StatusOk,
+		"change file info done",
+		nil,
+	))
 }
 
 func (server *Server) GetFileHandle(c *gin.Context) {
@@ -143,22 +193,22 @@ func (server *Server) GetFileHandle(c *gin.Context) {
 	user := userI.(*model.User)
 
 	// relative path
-	filePath, _ := url.QueryUnescape(c.Query("path"))
+	filePath, _ := url.QueryUnescape(c.Param("path"))
 
 	// absolute filepath
 	filePath = filepath.Join(user.RootDir, filePath)
-	fileinfo, _ := os.Stat(filePath)
-	if fileinfo.IsDir() {
+	fileInfo, _ := os.Stat(filePath)
+	if fileInfo.IsDir() {
 		c.JSON(http.StatusOK, model.PackResp(
 			StatusIoError,
-			"not a file",
+			"it's a directory, not a file",
 			nil,
 		))
 		return
 	}
 
 	// range
-	var begin, end int64 = 0, fileinfo.Size() - 1
+	var begin, end int64 = 0, fileInfo.Size() - 1
 	bytesRange := c.GetHeader("Range")
 	if len(bytesRange) > 0 {
 		begin, end = utils.UnpackRange(bytesRange)
@@ -220,28 +270,8 @@ func (server *Server) PutFileHandle(c *gin.Context) {
 		return
 	}
 
-	fileInfoJson, ok := c.GetQuery("fileinfo")
-	if !ok {
-		c.JSON(http.StatusOK, model.PackResp(
-			StatusNoParameterError,
-			"need file info",
-			nil,
-		))
-		return
-	}
-	fileInfoJson, _ = url.QueryUnescape(fileInfoJson)
-
-	fileInfo := model.FileInfo{}
-	if err := json.Unmarshal([]byte(fileInfoJson), &fileInfo); err != nil {
-		c.JSON(http.StatusOK, model.PackResp(
-			StatusInternalError,
-			"error when parsing file info",
-			nil,
-		))
-		return
-	}
-
-	filePath := filepath.Join(user.RootDir, fileInfo.FilePath)
+	filePath, _ := url.QueryUnescape(c.Param("path"))
+	filePath = filepath.Join(user.RootDir, filePath)
 	fileDir := filepath.Dir(filePath)
 	if err := os.MkdirAll(fileDir, 0777); err != nil {
 		c.JSON(http.StatusOK, model.PackResp(
@@ -253,7 +283,7 @@ func (server *Server) PutFileHandle(c *gin.Context) {
 	}
 
 	saveFile, err := os.OpenFile(filePath,
-		os.O_RDWR|os.O_CREATE, os.FileMode(fileInfo.FileMode))
+		os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
 		c.JSON(http.StatusOK, model.PackResp(
 			StatusIoError,
@@ -272,25 +302,7 @@ func (server *Server) PutFileHandle(c *gin.Context) {
 		return
 	}
 
-	if err = saveFile.Chmod(os.FileMode(fileInfo.FileMode)); err != nil {
-		c.JSON(http.StatusOK, model.PackResp(
-			StatusInternalError,
-			err.Error(),
-			nil,
-		))
-		return
-	}
-
 	saveFile.Close()
-
-	if err = os.Chtimes(filePath, time.Now(), time.Unix(fileInfo.ModifyTime, 0)); err != nil {
-		c.JSON(http.StatusOK, model.PackResp(
-			StatusInternalError,
-			err.Error(),
-			nil,
-		))
-		return
-	}
 
 	c.JSON(http.StatusOK, model.PackResp(
 		StatusOk,
@@ -300,7 +312,37 @@ func (server *Server) PutFileHandle(c *gin.Context) {
 }
 
 func (server *Server) DeleteFileHandle(c *gin.Context) {
+	userI, _ := c.Get("user")
+	user := userI.(*model.User)
 
+	filePath, _ := url.QueryUnescape(c.Param("path"))
+	filePath = filepath.Join(user.RootDir, filePath)
+
+	_, err := os.Stat(filePath)
+	if err != nil {
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusIoError,
+			fmt.Sprintf("read file info error: %s", err),
+			nil,
+		))
+		return
+	}
+
+	err = os.RemoveAll(filePath)
+	if err != nil {
+		c.JSON(http.StatusOK, model.PackResp(
+			StatusIoError,
+			fmt.Sprintf("delete file error: %s", err),
+			nil,
+		))
+		return
+	}
+
+	c.JSON(http.StatusOK, model.PackResp(
+		StatusOk,
+		"delete file done",
+		nil,
+	))
 }
 
 func (server *Server) ChangeDirHandle(c *gin.Context) {
